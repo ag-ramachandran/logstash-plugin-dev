@@ -50,7 +50,7 @@ ENV LOGSTASH_PATH=${LS_HOME}
 # the Logstash source tells us which version
 # of JRuby it wants.
 
-RUN git clone --branch 7.17 --single-branch https://github.com/elastic/logstash.git
+RUN git clone --branch 8.6 --single-branch https://github.com/elastic/logstash.git
 
 # I had originally wanted this to be a --mount=type=cache, but gradlew complained that
 # it couldn't create an exclusive lock within there...
@@ -58,7 +58,7 @@ RUN git clone --branch 7.17 --single-branch https://github.com/elastic/logstash.
 RUN --mount=type=cache,target=/src/.gradle,uid=1000,gid=1000 \
   set -eu; \
   cd ${LS_HOME}; \
-  ./gradlew assemble
+  ./gradlew installDevelopmentGems assemble
 
 # For Ruby stuff, we want a copy of jruby that matches what Logstash uses for
 # whichever version we're building.
@@ -77,7 +77,8 @@ RUN --mount=type=cache,target=/src/.gradle,uid=1000,gid=1000 \
 
 # See version.yml in the logstash repo
 #
-ARG jruby_version=9.2.20.1
+ARG jruby_version=9.3.10.0
+#9.2.21.0
 
 # See versions.yml in the logstash repo
 #
@@ -107,12 +108,15 @@ ENV PATH=/opt/jruby/bin:/src/logstash/bin:/src/bin:${PATH}
 RUN jruby --version
 
 RUN --mount=type=cache,target=/src/.gradle,uid=1000,gid=1000 \
-  gem install bundler rake
+   gem install bundler -v 2.3.18
+
+RUN --mount=type=cache,target=/src/.gradle,uid=1000,gid=1000 \
+   gem install rake
 
 # Now that we have 'rake' available, we need to bootstrap the logstash source
 # to provide ... jruby (a vendored version of it) and more besides.
 
-RUN set -eu; cd ${LS_HOME}; cp Gemfile.jruby-2.5.lock.release Gemfile.lock
+RUN set -eu; cd ${LS_HOME}; cp Gemfile.jruby-2.6.lock.release Gemfile.lock
 
 RUN --mount=type=cache,target=/src/.gradle,uid=1000,gid=1000 \
   set -eu; cd ${LS_HOME}; rake bootstrap
